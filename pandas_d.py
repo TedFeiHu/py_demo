@@ -146,7 +146,7 @@ print(df.tail())  # 查看后面的行
 print(df.tail(3))
 print(df.info())  # 总体信息
 
-# 通用函数 与Numpy 通用
+# 通用函数 与Numpy 通用  向量运算，矩阵运算
 A = pd.DataFrame(np.random.randint(0, 20, size=(2, 2)), columns=list("AB"))  # 2*2
 B = pd.DataFrame(np.random.randint(0, 10, size=(3, 3)), columns=list("ABC"))  # 3*3
 print(A + B)  # 自动用NaN 补齐
@@ -245,9 +245,53 @@ print(df)
 print(df.groupby("key"))
 print(df.groupby("key").sum())
 print(df.groupby("key").mean())
-for i in df.groupby("key"):
-    print(str(i))
+for data, group in df.groupby("key"):  # 迭代
+    print(data, "------")
+    print(group)
 print(df.groupby("key")["data2"].sum())  # 按列取值
+print(df.groupby("key")["data1"].describe())  # 一次打印多种计算数据
+print(df.groupby("key").aggregate(["min", "median", "max"]))  # 更复杂的操作
+L = [0, 1, 0, 1, 0, 1]  # 自定义分组
+print(df.groupby(L).sum())
+# 用字典，将索引映射到分组
+df2 = df.set_index("key")  # 使用key作为行索引
+map_dict = {"A": "first", "B": "second", "C": "second"}
+print(df2.groupby(map_dict).sum())
+print(df2.groupby(str.lower).mean())  # 任意函数
+print(df2.groupby([str.lower, map_dict]).mean())  # 多个有效值列表
 
+# -------例1 行星观测数据处理
+print("-------例 行星观测数据处理")
+import seaborn as sns
+
+planets = sns.load_dataset("planets")
+print(planets.shape)
+print(planets.head())
+# print(planets.describe())
+
+year_ = 10 * (planets["year"] // 10)  # 年代
+decade = year_.astype(str) + "s"
+decade.name = "decade"
+print(decade.head())
+
+# 不同年代，不同观测方法 所发现行星的数量？
+print(planets.groupby(["method", decade]).sum())
+# print(planets.groupby(["method", decade])["number"].sum())  # 只需要number
+# print(planets.groupby(["method", decade])[["number"]].sum())  # 只需要number
+# print(planets.groupby(["method", decade])[["number"]].sum().unstack())  # 二维展开
+print(planets.groupby(["method", decade])[["number"]].sum().unstack().fillna(0))  # 填0
+
+# -------例2 数据透视表
+print("-------例2 数据透视表 泰坦尼克乘客数据分析")
+titanic = sns.load_dataset("titanic")
+print(titanic.shape)
+print(titanic.head())
+# print(titanic.describe())
+# titanic.groupby("sex")[["survived"]].mean()
+# titanic.groupby(["sex", "clsss"])["survived"].aggregate("mean").unstack()
+# 数据透视用法
+titanic.pivot_table("survived", index="sex", columns="class")  # 等价上面那行， 默认数据处理方式是计算平均值
+titanic.pivot_table("survived", index="sex", columns="class", aggfunc="mean", margins=True)  # 指定计算方式，margins=True 增加总列行
+titanic.pivot_table(index="sex", columns="class", aggfunc={"survived": "sum", "fare": "mean"})  # 增加透视纬度，指定处理方式
 # ---------------------------
 # 其他
